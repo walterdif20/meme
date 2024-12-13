@@ -56,14 +56,20 @@
             padding: 0;
         }
         li {
-            background: #f9f9f9;
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #ccc;
-            border-radius: 10px;
+            background: linear-gradient(135deg, #ffefef, #ffdcdc);
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #ffcccc;
+            border-radius: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+        li:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
         .delete-button, .edit-button {
             border: none;
@@ -73,6 +79,11 @@
         .delete-button img, .edit-button img {
             width: 20px;
             height: 20px;
+        }
+        .time-input {
+            width: 80px;
+            font-size: 14px;
+            margin-right: 10px;
         }
         .totals {
             margin-top: 20px;
@@ -136,13 +147,15 @@
 
                 entries.forEach((entry, index) => {
                     const li = document.createElement('li');
-                    li.innerHTML = `${entry} 
-                        <button class="edit-button" data-index="${index}"><img src="https://cdn-icons-png.flaticon.com/512/1828/1828911.png" alt="Edit"></button>
+                    const [time, type, details] = entry.split(' - ');
+                    li.innerHTML = `
+                        <input type="time" class="time-input" value="${time}" data-index="${index}">
+                        ${type} ${details || ''}
                         <button class="delete-button" data-index="${index}"><img src="https://cdn-icons-png.flaticon.com/512/1214/1214428.png" alt="Delete"></button>`;
                     feedingLog.appendChild(li);
                 });
             }
-            addEditListeners(logs);
+            addTimeInputListeners(logs);
             addDeleteListeners(logs);
             calculateTotals(logs);
         };
@@ -165,18 +178,17 @@
             });
         };
 
-        // Add event listeners to edit buttons
-        const addEditListeners = (logs) => {
-            document.querySelectorAll('.edit-button').forEach((button, index) => {
-                button.addEventListener('click', () => {
-                    const newTime = prompt('Ingresa el nuevo horario (HH:mm):');
-                    if (newTime) {
-                        const logParts = logs[index].split(' - ');
-                        logParts[1] = `${logParts[0]} ${newTime}`;
-                        logs[index] = logParts.join(' - ');
-                        localStorage.setItem('feedingLogs', JSON.stringify(logs));
-                        loadLogs();
-                    }
+        // Add event listeners to time inputs
+        const addTimeInputListeners = (logs) => {
+            document.querySelectorAll('.time-input').forEach(input => {
+                input.addEventListener('change', (event) => {
+                    const index = event.target.getAttribute('data-index');
+                    const newTime = event.target.value;
+                    const logParts = logs[index].split(' - ');
+                    logParts[0] = `${logParts[0].split(' ')[0]} ${newTime}`;
+                    logs[index] = logParts.join(' - ');
+                    localStorage.setItem('feedingLogs', JSON.stringify(logs));
+                    loadLogs();
                 });
             });
         };
