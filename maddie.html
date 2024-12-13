@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maddie Control de Leche</title>
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            margin: 20px;
+            background-color: #fef9e6;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #ff8c8c;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .log {
+            margin-top: 20px;
+            text-align: left;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #ff8c8c;
+            color: #fff;
+            margin: 5px;
+            transition: transform 0.1s;
+        }
+        button:hover {
+            background: #ff6f6f;
+            transform: scale(1.05);
+        }
+        input, select {
+            padding: 10px;
+            font-size: 16px;
+            width: calc(100% - 22px);
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background: #f9f9f9;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .delete-button {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        .delete-button img {
+            width: 20px;
+            height: 20px;
+        }
+        .totals {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .icon {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 10px;
+        }
+        .group-header {
+            font-weight: bold;
+            margin: 10px 0;
+            color: #ff8c8c;
+        }
+    </style>
+</head>
+<body>
+    <h1>Maddie Control de Leche</h1>
+    <div class="container">
+        <img src="https://cdn-icons-png.flaticon.com/512/1857/1857160.png" alt="Baby Icon" class="icon">
+        <select id="feedingType">
+            <option value="Mamadera">Mamadera</option>
+            <option value="Teta">Teta</option>
+        </select>
+        <input type="number" id="amountInput" placeholder="Cantidad (ml)" />
+        <button id="recordButton">Registrar Alimentación</button>
+        <div class="log">
+            <h2>Historial:</h2>
+            <ul id="feedingLog"></ul>
+        </div>
+        <div class="totals">
+            <h2>Total por día:</h2>
+            <ul id="dailyTotals"></ul>
+        </div>
+    </div>
+
+    <script>
+        const recordButton = document.getElementById('recordButton');
+        const feedingLog = document.getElementById('feedingLog');
+        const amountInput = document.getElementById('amountInput');
+        const feedingType = document.getElementById('feedingType');
+        const dailyTotals = document.getElementById('dailyTotals');
+
+        // Load existing data from localStorage
+        const loadLogs = () => {
+            const logs = JSON.parse(localStorage.getItem('feedingLogs')) || [];
+            const groupedLogs = logs.reduce((groups, log) => {
+                const [date, ...rest] = log.split(' - ');
+                if (!groups[date]) groups[date] = [];
+                groups[date].push(rest.join(' - '));
+                return groups;
+            }, {});
+
+            feedingLog.innerHTML = '';
+            for (const [date, entries] of Object.entries(groupedLogs)) {
+                const groupHeader = document.createElement('div');
+                groupHeader.className = 'group-header';
+                groupHeader.textContent = date;
+                feedingLog.appendChild(groupHeader);
+
+                entries.forEach((entry, index) => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `${entry} <button class="delete-button" data-index="${index}"><img src="https://cdn-icons-png.flaticon.com/512/1214/1214428.png" alt="Delete"></button>`;
+                    feedingLog.appendChild(li);
+                });
+            }
+            addDeleteListeners(logs);
+            calculateTotals(logs);
+        };
+
+        // Save log to localStorage
+        const saveLog = (log) => {
+            const logs = JSON.parse(localStorage.getItem('feedingLogs')) || [];
+            logs.push(log);
+            localStorage.setItem('feedingLogs', JSON.stringify(logs));
+        };
+
+        // Add event listeners to delete buttons
+        const addDeleteListeners = (logs) => {
+            document.querySelectorAll('.delete-button').forEach((button, index) => {
+                button.addEventListener('click', () => {
+                    logs.splice(index, 1);
+                    localStorage.setItem('feedingLogs', JSON.stringify(logs));
+                    loadLogs();
+                });
+            });
+        };
+
+        // Calculate daily totals
+        const calculateTotals = (logs) => {
+            const totals = {};
+            logs.forEach(log => {
+                const [date, ...details] = log.split(' - ');
+                const amountMatch = details.join(' - ').match(/(\d+) ml/);
+                if (amountMatch) {
+                    const amount = parseInt(amountMatch[1], 10);
+                    if (!totals[date]) totals[date] = 0;
+                    totals[date] += amount;
+                }
+            });
+
+            dailyTotals.innerHTML = '';
+            for (const [date, total] of Object.entries(totals)) {
+                const li = document.createElement('li');
+                li.textContent = `${date}: ${total} ml`;
+                dailyTotals.appendChild(li);
+            }
+        };
+
+        // Handle button click
+        recordButton.addEventListener('click', () => {
+            const amount = amountInput.value.trim();
+            const type = feedingType.value;
+            if (!amount && type === "Mamadera") {
+                alert('Por favor, ingresa la cantidad de leche.');
+                return;
+            }
+            const now = new Date();
+            const timestamp = `${now.toLocaleDateString()} - ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${type} ${amount ? `- ${amount} ml` : ''}`;
+            saveLog(timestamp);
+            amountInput.value = '';
+            loadLogs();
+        });
+
+        // Initial load
+        loadLogs();
+    </script>
+</body>
+</html>
