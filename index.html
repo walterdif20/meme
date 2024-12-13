@@ -65,12 +65,12 @@
             justify-content: space-between;
             align-items: center;
         }
-        .delete-button {
+        .delete-button, .edit-button {
             border: none;
             background: transparent;
             cursor: pointer;
         }
-        .delete-button img {
+        .delete-button img, .edit-button img {
             width: 20px;
             height: 20px;
         }
@@ -136,10 +136,13 @@
 
                 entries.forEach((entry, index) => {
                     const li = document.createElement('li');
-                    li.innerHTML = `${entry} <button class="delete-button" data-index="${index}"><img src="https://cdn-icons-png.flaticon.com/512/1214/1214428.png" alt="Delete"></button>`;
+                    li.innerHTML = `${entry} 
+                        <button class="edit-button" data-index="${index}"><img src="https://cdn-icons-png.flaticon.com/512/1828/1828911.png" alt="Edit"></button>
+                        <button class="delete-button" data-index="${index}"><img src="https://cdn-icons-png.flaticon.com/512/1214/1214428.png" alt="Delete"></button>`;
                     feedingLog.appendChild(li);
                 });
             }
+            addEditListeners(logs);
             addDeleteListeners(logs);
             calculateTotals(logs);
         };
@@ -158,6 +161,22 @@
                     logs.splice(index, 1);
                     localStorage.setItem('feedingLogs', JSON.stringify(logs));
                     loadLogs();
+                });
+            });
+        };
+
+        // Add event listeners to edit buttons
+        const addEditListeners = (logs) => {
+            document.querySelectorAll('.edit-button').forEach((button, index) => {
+                button.addEventListener('click', () => {
+                    const newTime = prompt('Ingresa el nuevo horario (HH:mm):');
+                    if (newTime) {
+                        const logParts = logs[index].split(' - ');
+                        logParts[1] = `${logParts[0]} ${newTime}`;
+                        logs[index] = logParts.join(' - ');
+                        localStorage.setItem('feedingLogs', JSON.stringify(logs));
+                        loadLogs();
+                    }
                 });
             });
         };
